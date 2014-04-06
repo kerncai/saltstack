@@ -1,0 +1,14 @@
+/data1/logs/squid/*.log {
+    daily
+    rotate 7
+    copytruncate
+    create 644 squid squid
+    compress
+    dateext
+    ifempty
+    missingok
+    postrotate
+        [ ! -f /usr/local/squid-2.7/var/logs/squid.pid ] || /usr/local/squid-2.7/sbin/squid -k rotate && /bin/chmod 644 /data1/logs/squid/*.log*
+    endscript
+}
+

@@ -1,0 +1,182 @@
+#########################################################################
+#File Name: squid.sh
+#this script is used to start or shutdown the squid!
+#Author: kerncai
+#mail: kernkerncai@gmail.com
+#Created Time: 2013年12月13日 星期五 16时56分05秒
+#########################################################################
+#!/bin/bash
+#squid=/usr/local/squid-2.7/sbin/squid 
+#squid_config=/usr/local/squid-2.7/etc/squid.conf
+#squid_pid=/var/run/squid.pid
+
+PATH=/usr/bin:/sbin:/bin:/usr/sbin 
+export PATH 
+
+# Source function library. 
+. /etc/rc.d/init.d/functions 
+
+# Source networking configuration. 
+. /etc/sysconfig/network 
+
+#SQUID_OPTS=${SQUID_OPTS:-"-D"} 
+#Open the DNS whether demand
+
+# don't raise an error if the config file is incomplete 
+# set defaults instead: 
+SQUID_PIDFILE_TIMEOUT=${SQUID_PIDFILE_TIMEOUT:-20} 
+SQUID_SHUTDOWN_TIMEOUT=${SQUID_SHUTDOWN_TIMEOUT:-100} 
+
+squid=/usr/local/squid-2.7/sbin/squid 
+squid_config=/usr/local/squid-2.7/etc/squid.conf
+squid_pid=/var/run/squid.pid
+pid=`cat /var/run/squid.pid`
+# determine the name of the squid binary 
+[ -f $squid ] && prog="squid" 
+
+# determine which one is the cache_swap directory 
+CACHE_SWAP=`sed -e 's/#.*//g' $squid_config | grep cache_dir |  awk '{ print $3 }'` 
+
+[ -z "$CACHE_SWAP" ] && CACHE_SWAP=/var/log/squid
+
+RETVAL=0 
+
+start() { 
+    if [ ! -f $squid_config ]; then 
+        echo "Configuration file $squid_config does not exist" 1>&2 
+            exit 6 
+        fi 
+    if [ -z "$squid" ]; then 
+        echo "Insufficient privilege" 1>&2 
+            exit 4 
+        fi 
+    for adir in $CACHE_SWAP; do 
+        if [ ! -d $adir/00 ]; then 
+            echo -n "init_cache_dir $adir... " 
+            $squid -z -f $squid_config >> /data1/logs/squid/cache.log
+        fi 
+    done 
+    echo -n $"Starting $prog: " 
+    $squid $SQUID_OPTS -s -f $squid_config >> /data1/logs/squid/cache.log 2>&1 
+    RETVAL=$? 
+    if [ $RETVAL -eq 0 ]; then 
+        timeout=0; 
+        while : ; do 
+        [ ! -f $squid_pid ] || break 
+        if [ $timeout -ge $SQUID_PIDFILE_TIMEOUT ]; then 
+            RETVAL=1 
+            break 
+        fi 
+        sleep 1  
+        timeout=$((timeout+1)) 
+            done 
+    fi 
+    [ $RETVAL -eq 0 ] && touch /var/lock/subsys/$prog 
+    [ $RETVAL -eq 0 ] && echo_success 
+    [ $RETVAL -ne 0 ] && echo_failure 
+    [ $RETVAL -ne 0 ] && echo "The squid is running PID $pid"
+    echo 
+    return $RETVAL 
+} 
+
+stop() { 
+    echo -n  $"Stopping $prog: " 
+    $squid -k check -f $squid_config >> /data1/logs/squid/cache.log 2>&1 
+    RETVAL=$? 
+    if [ $RETVAL -eq 0 ] ; then 
+        $squid -k shutdown -f $squid_config & 
+        rm -f /var/lock/subsys/$prog 
+        timeout=0 
+        while : ; do 
+            [ -f $squid_pid ] || break 
+            if [ $timeout -ge $SQUID_SHUTDOWN_TIMEOUT ]; then 
+            echo 
+            return 1 
+            fi 
+            sleep 2  
+            timeout=$((timeout+2)) 
+         done 
+        echo_success 
+        echo 
+    else 
+        echo_failure 
+        if [ ! -e /var/lock/subsys/$prog ]; then 
+            RETVAL=0 
+        fi 
+        echo 
+    fi 
+    return $RETVAL 
+} 
+
+reload() { 
+    $squid -k reconfigure -f $squid_config 
+    echo -n  $"reload_config $prog: " 
+    echo_success 
+    echo 
+} 
+
+restart() { 
+    stop 
+    sleep 5 
+    start 
+} 
+
+condrestart() { 
+    [ -e /var/lock/subsys/squid ] && restart || : 
+} 
+
+configtest() {
+     $squid -k parse -f $squid_config
+     echo -n  $"The configuration file $squid_config $prog is "
+     echo_success
+     echo
+    }
+
+
+rhstatus() { 
+    status $squid && $squid -k check -f $squid_config 
+} 
+
+probe() { 
+    return 0 
+} 
+
+case "$1" in 
+start) 
+  start 
+  ;; 
+
+stop) 
+  stop 
+  ;; 
+
+reload) 
+  reload 
+  ;; 
+
+restart) 
+  restart 
+  ;; 
+
+configtest)
+  configtest
+  ;;
+
+condrestart) 
+  condrestart 
+  ;; 
+
+status) 
+  rhstatus 
+  ;; 
+
+probe) 
+  exit 0 
+  ;; 
+
+*) 
+  echo $"Usage: $0 {configtest|start|stop|status|reload|restart|condrestart}" 
+  exit 2 
+esac 
+
+exit $? 

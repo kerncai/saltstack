@@ -1,0 +1,57 @@
+let mapleader = ";"
+
+set nocompatible
+syntax enable
+filetype on
+filetype plugin on
+filetype indent on
+set shortmess=atI
+
+set vb t_vb=
+
+set background=dark
+set t_Co=256
+"colorscheme desert 
+
+"缩进
+set autoindent
+set smartindent
+set cindent
+
+set nu
+set showcmd
+set nobackup
+
+"搜索
+set incsearch
+set hlsearch
+set ignorecase
+
+"tab转化为四个字符
+set expandtab
+set smarttab
+set shiftwidth=4
+set tabstop=4
+
+"字符编码
+set encoding=utf8
+set fileencodings=utf8,gb2312,gb18030,big5,ucs-bom,latin1
+
+"从系统剪切板中复制，剪切，粘贴
+map <F7> "+y
+map <F8> "+x
+map <F9> "+p
+set pastetoggle=<F11>
+
+
+"状态栏
+set laststatus=2
+highlight StatusLine cterm=bold ctermfg=yellow ctermbg=blue
+"获取当前路径，将$HOME转化为~
+function! CurDir()
+    let curdir = substitute(getcwd(),$HOME,"~","g")
+    return curdir
+endfunction
+set statusline=[%n]\ %f%m%r%h\ \|\ %{CurDir()}\ \|%=\|\ %l,%c\ %p%%\ \|\ %{$USER}\ @\ %{hostname()}
+
+set modeline

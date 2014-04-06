@@ -1,0 +1,2 @@
+0 */6 * * * /usr/sbin/ntpdate 10.10.6.130
+0 2 * * * /bin/bash /root/scripts/rm_cache_swap_log.sh
