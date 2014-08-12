@@ -1,10 +1,10 @@
 ############IDC################
 {% if grains['ip_interfaces'].get('eth0')[0].startswith('10.10') %}
-nameservers: ['10.10.6.251','10.10.6.252']
-zabbixserver: ['10.10.3.234']
+nameservers: ['10.10.11.251','10.10.11.252']
+zabbixserver: ['2.3.4.5']
 {% else %}
-nameservers: ['10.20.100.75']
-zabbixserver: ['10.20.100.234']
+nameservers: ['10.20.11.75']
+zabbixserver: ['10.20.111.234']
 {% endif %}
 
 ############OS#################
